@@ -1,0 +1,2 @@
+# Divergent-systemic-and-airway-mucosal-adaptive-immunity-to-SARS-CoV-2-in-African-adults
+The project aimed to evaluate the relationship between systemic and airway mucosal immunity in HIV-uninfected adults and ART-treated people with HIV. SARS-CoV-2–specific humoral and T cell responses were quantified across systemic and mucosal compartments using electrochemiluminescence immunoassays and flow cytometry.
