@@ -1,0 +1,92 @@
+HIV status,Age,Sex,Vaccination status,Number of doses,Primary vaccine type (Dose 1),Primary vaccine type (Dose 2),Time since last vaccination (months),Absolute CD4,HIV viral load
+HIV-uninfected,37,Female,Vaccinated,2,AstraZeneca,AstraZeneca,29,NA,NA
+HIV-uninfected,44,Male,Vaccinated,1,AstraZeneca,NA,34,NA,NA
+HIV-uninfected,30,Female,Vaccinated,2,Janssen (Johnson & Johnson),Janssen (Johnson & Johnson),21,NA,NA
+HIV-uninfected,30,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,27,Male,Vaccinated,2,AstraZeneca,AstraZeneca,32,NA,NA
+HIV-uninfected,32,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,25,Male,Vaccinated,1,Pfizer-BioNTech,NA,14,NA,NA
+HIV-uninfected,22,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,30,Male,Vaccinated,1,AstraZeneca,NA,36,NA,NA
+HIV-uninfected,22,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,32,Female,Vaccinated,1,AstraZeneca,NA,36,NA,NA
+HIV-uninfected,19,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,41,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,38,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,44,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,35,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,19,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,38,Female,Vaccinated,1,AstraZeneca,NA,37,NA,NA
+PLHIV ART>1yr,30,Female,Vaccinated,1,AstraZeneca,NA,36,574,Not Detected
+PLHIV ART>1yr,29,Male,Unvaccinated,NA,NA,NA,NA,284,Not Detected
+HIV-uninfected,34,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,21,Female,Vaccinated,1,Janssen (Johnson & Johnson),NA,27,NA,NA
+PLHIV ART>1yr,42,Female,Vaccinated,1,Janssen (Johnson & Johnson),NA,28,266,Detected
+PLHIV ART>1yr,40,Female,Vaccinated,2,Janssen (Johnson & Johnson),Janssen (Johnson & Johnson),10,642,Not Detected
+HIV-uninfected,24,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,41,Female,Unvaccinated,NA,NA,NA,NA,214,Not Detected
+HIV-uninfected,29,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,37,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,30,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,28,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,22,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,43,Male,Vaccinated,1,AstraZeneca,NA,30,NA,NA
+HIV-uninfected,23,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,37,Female,Unvaccinated,NA,NA,NA,NA,536,Not Detected
+PLHIV ART>1yr,38,Male,Unvaccinated,NA,NA,NA,NA,722,Not Detected
+PLHIV ART>1yr,27,Female,Vaccinated,2,Moderna,Moderna,23,602,Detected
+PLHIV ART>1yr,43,Female,Vaccinated,1,AstraZeneca,NA,35,676,Not Detected
+HIV-uninfected,24,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,26,Female,Unvaccinated,NA,NA,NA,NA,473,Detected
+PLHIV ART>1yr,43,Female,Vaccinated,2,AstraZeneca,AstraZeneca,30,650,Not Detected
+PLHIV ART>1yr,33,Female,Unvaccinated,NA,NA,NA,NA,588,Not Detected
+PLHIV ART>1yr,44,Female,Vaccinated,2,Moderna,Moderna,17,658,Not Detected
+PLHIV ART>1yr,30,Female,Vaccinated,2,Moderna,Moderna,16,495,Not Detected
+PLHIV ART>1yr,38,Female,Vaccinated,2,AstraZeneca,AstraZeneca,35,344,Not Detected
+PLHIV ART>1yr,45,Female,Vaccinated,2,AstraZeneca,AstraZeneca,35,90,Not Detected
+HIV-uninfected,24,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,37,Female,Unvaccinated,NA,NA,NA,NA,986,Not Detected
+PLHIV ART>1yr,43,Female,Vaccinated,1,Janssen (Johnson & Johnson),NA,30,796,Not Detected
+PLHIV ART>1yr,43,Male,Vaccinated,2,AstraZeneca,AstraZeneca,33,561,Not Detected
+PLHIV ART>1yr,42,Male,Unvaccinated,NA,NA,NA,NA,210,Not Detected
+PLHIV ART>1yr,38,Male,Vaccinated,2,AstraZeneca,AstraZeneca,36,450,Not Detected
+HIV-uninfected,19,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,57,Male,Unvaccinated,NA,NA,NA,NA,424,Not Detected
+PLHIV ART>1yr,23,Female,Unvaccinated,NA,NA,NA,NA,295,Detected
+HIV-uninfected,29,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,47,Female,Vaccinated,2,AstraZeneca,AstraZeneca,23,485,Not Detected
+PLHIV ART>1yr,38,Male,Unvaccinated,NA,NA,NA,NA,533,Not Detected
+PLHIV ART>1yr,44,Female,Vaccinated,1,AstraZeneca,NA,40,672,Not Detected
+PLHIV ART>1yr,38,Female,Unvaccinated,NA,NA,NA,NA,910,Not Detected
+HIV-uninfected,38,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,49,Female,Vaccinated,1,AstraZeneca,NA,28,609,Not Detected
+HIV-uninfected,24,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,27,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,40,Male,Vaccinated,1,Janssen (Johnson & Johnson),NA,38,NA,NA
+HIV-uninfected,44,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,52,Female,Vaccinated,2,AstraZeneca,AstraZeneca,39,803,Not Detected
+PLHIV ART>1yr,45,Female,Unvaccinated,NA,NA,NA,NA,780,Not Detected
+PLHIV ART>1yr,23,Female,Unvaccinated,NA,NA,NA,NA,1220,Not Detected
+PLHIV ART>1yr,37,Female,Vaccinated,1,Janssen (Johnson & Johnson),NA,41,968,Not Detected
+PLHIV ART>1yr,25,Female,Unvaccinated,NA,NA,NA,NA,768,Not Detected
+PLHIV ART>1yr,34,Female,Unvaccinated,NA,NA,NA,NA,77,Detected
+PLHIV ART>1yr,58,Female,Vaccinated,2,AstraZeneca,AstraZeneca,43,1176,Not Detected
+HIV-uninfected,26,Male,Unvaccinated,NA,NA,NA,NA,NA,NA
+HIV-uninfected,28,Male,Vaccinated,1,Janssen (Johnson & Johnson),NA,3,NA,NA
+HIV-uninfected,60,Female,Vaccinated,2,AstraZeneca,AstraZeneca,49,NA,NA
+PLHIV ART>1yr,40,Female,Vaccinated,1,AstraZeneca,NA,28,565,Not Detected
+PLHIV ART>1yr,32,Female,Unvaccinated,NA,NA,NA,NA,675,Not Detected
+HIV-uninfected,28,Female,Vaccinated,1,AstraZeneca,NA,40,NA,NA
+HIV-uninfected,24,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,39,Female,Vaccinated,2,Moderna,Moderna,16,586,Not Detected
+HIV-uninfected,22,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,45,Male,Vaccinated,2,Janssen (Johnson & Johnson),Janssen (Johnson & Johnson),11,482,Not Detected
+HIV-uninfected,46,Male,Vaccinated,2,AstraZeneca,AstraZeneca,23,NA,NA
+PLHIV ART>1yr,36,Male,Vaccinated,2,AstraZeneca,AstraZeneca,36,265,Not Detected
+PLHIV ART>1yr,41,Male,Unvaccinated,NA,NA,NA,NA,544,Detected
+PLHIV ART>1yr,43,Female,Unvaccinated,NA,NA,NA,NA,616,Not Detected
+PLHIV ART>1yr,36,Male,Vaccinated,1,Janssen (Johnson & Johnson),NA,43,375,Detected
+PLHIV ART>1yr,57,Female,Vaccinated,2,AstraZeneca,AstraZeneca,42,857,Not Detected
+PLHIV ART>1yr,44,Female,Unvaccinated,NA,NA,NA,NA,467,Not Detected
+HIV-uninfected,25,Female,Unvaccinated,NA,NA,NA,NA,NA,NA
+PLHIV ART>1yr,35,Male,Unvaccinated,NA,NA,NA,NA,697,Not Detected
