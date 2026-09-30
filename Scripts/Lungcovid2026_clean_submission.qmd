@@ -1,0 +1,946 @@
+---
+title: "Reproducible analysis: Divergent systemic and airway mucosal adaptive immunity to SARS-CoV-2 in African adults"
+author: "Gloria Kapira and Kondwani Jambo"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    code-tools: true
+execute:
+  echo: true
+  warning: false
+  message: false
+  cache: false
+---
+
+# Overview
+
+This Quarto document reproduces the analytical outputs reported in the manuscript from derived publication datasets. Figures 1–4 and Tables 1–2 are generated analytically in R from the corresponding derived datasets supplied with the publication. Primary participant-level source datasets are not required to run this document.
+
+Figure 5 is handled separately: its phenotyping panels were generated externally and are not recreated analytically here. This workflow imports the completed panels, adds panel labels, assembles them, and exports the final Figure 5. The underlying Figure 5 data may be supplied separately but are not used by this Quarto document.
+Figure 5 is handled separately: its analysis was externally generated in SPICE and PESTEL and are not recreated analytically here. This workflow imports the completed panels, adds panel labels, assembles them, and exports the final Figure 5. 
+
+All underlying data to reproduce each figure have been provided separately.
+
+```{r}
+#| label: setup
+#| include: false
+
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(patchwork)
+library(gt)
+library(gtsummary)
+library(broom)
+library(magick)
+library(grid)
+
+derived_dir <- "derived_data"
+image_dir   <- "images"
+output_dir  <- "output"
+figure_dir  <- file.path(output_dir, "figures")
+table_dir   <- file.path(output_dir, "tables")
+
+dir.create(figure_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(table_dir, recursive = TRUE, showWarnings = FALSE)
+
+antigen_order <- c("Wildtype", "Alpha", "Beta", "Gamma", "Delta", "Omicron")
+
+cb_antigen <- c(
+  "Wildtype" = "#000000",
+  "Alpha"    = "#E69F00",
+  "Beta"     = "#56B4E9",
+  "Gamma"    = "#009E73",
+  "Delta"    = "#0072B2",
+  "Omicron"  = "#D55E00"
+)
+
+hiv_palette <- c("HIV-" = "#1f77b4", "HIV+" = "#d62728")
+comp_palette <- c("BAL" = "#1b9e77", "PB" = "#7570b3")
+iso_palette <- c("IgA" = "#1b9e77", "IgG" = "#d95f02")
+
+format_p <- function(p) {
+  ifelse(p < 0.001, "p < 0.001", sprintf("p = %.3f", p))
+}
+
+publication_theme <- function(base_size = 14) {
+  theme_minimal(base_size = base_size) +
+    theme(
+      plot.title = element_text(size = 20, face = "bold", hjust = 0),
+      plot.title.position = "plot",
+      strip.text = element_text(face = "bold", size = 18),
+      axis.title = element_text(face = "bold", size = 18),
+      axis.text = element_text(size = 18),
+      panel.background = element_rect(fill = "white", colour = "black"),
+      panel.grid.major = element_line(color = "grey70", linewidth = 0.1),
+      panel.grid.minor = element_line(color = "grey85", linewidth = 0.08)
+    )
+}
+```
+
+# Table 1: participant characteristics
+
+`Table1_data.csv` is the derived participant-level dataset used to generate the manuscript cohort-characteristics table. It contains only the variables required for Table 1; the primary study metadata are not required by this workflow.
+
+```{r}
+#| label: table1-build
+#| include: false
+
+table1_data <- read_csv(
+  file.path(derived_dir, "Table1_data.csv"),
+  file.path("Table1_data.csv"),
+  show_col_types = FALSE
+) %>%
+  mutate(
+    `HIV status` = factor(
+      `HIV status`,
+      levels = c("HIV-uninfected", "PLHIV ART>1yr")
+    ),
+    Sex = factor(Sex),
+    `Vaccination status` = factor(`Vaccination status`),
+    `Number of doses` = factor(`Number of doses`),
+    `Primary vaccine type (Dose 1)` = factor(`Primary vaccine type (Dose 1)`),
+    `Primary vaccine type (Dose 2)` = factor(`Primary vaccine type (Dose 2)`),
+    `HIV viral load` = factor(
+      `HIV viral load`,
+      levels = c("Not Detected", "Detected")
+    )
+  )
+
+Table1_final <- table1_data %>%
+  select(
+    `HIV status`,
+    Age,
+    Sex,
+    `Vaccination status`,
+    `Number of doses`,
+    `Primary vaccine type (Dose 1)`,
+    `Primary vaccine type (Dose 2)`,
+    `Time since last vaccination (months)`,
+    `Absolute CD4`,
+    `HIV viral load`
+  ) %>%
+  tbl_summary(
+    by = `HIV status`,
+    type = list(`HIV viral load` ~ "categorical"),
+    statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    percent = "column",
+    digits = list(all_categorical() ~ 0),
+    missing = "no",
+    label = list(
+      Age ~ "Age (years)",
+      Sex ~ "Sex",
+      `Vaccination status` ~ "Vaccination status",
+      `Number of doses` ~ "Number of doses",
+      `Primary vaccine type (Dose 1)` ~ "Primary vaccine type (Dose 1)",
+      `Primary vaccine type (Dose 2)` ~ "Primary vaccine type (Dose 2)",
+      `Time since last vaccination (months)` ~
+        "Time since last COVID-19 vaccination (months)",
+      `Absolute CD4` ~ "Absolute CD4 cell count (cells/µL)",
+      `HIV viral load` ~ "HIV viral load"
+    )
+  ) %>%
+  add_p(
+    include = c(
+      Age,
+      Sex,
+      `Vaccination status`,
+      `Number of doses`,
+      `Primary vaccine type (Dose 1)`,
+      `Primary vaccine type (Dose 2)`,
+      `Time since last vaccination (months)`
+    ),
+    test = list(
+      Age ~ "wilcox.test",
+      `Time since last vaccination (months)` ~ "wilcox.test",
+      Sex ~ "fisher.test",
+      `Vaccination status` ~ "chisq.test",
+      `Number of doses` ~ "chisq.test",
+      `Primary vaccine type (Dose 1)` ~ "fisher.test",
+      `Primary vaccine type (Dose 2)` ~ "fisher.test"
+    ),
+    test.args = all_tests("wilcox.test") ~ list(exact = FALSE),
+    pvalue_fun = ~ style_pvalue(.x, digits = 3)
+  ) %>%
+  modify_table_body(
+    ~ .x %>%
+      mutate(
+        p.value = ifelse(
+          label %in% c(
+            "Absolute CD4 cell count (cells/µL)",
+            "HIV viral load"
+          ),
+          NA_real_,
+          p.value
+        )
+      )
+  ) %>%
+  bold_labels() %>%
+  modify_header(label = "**Characteristic**")
+
+Table1_gt <- Table1_final %>%
+  as_gt() %>%
+  tab_options(
+    table.font.size = 12,
+    data_row.padding = px(4)
+  )
+
+gtsave(Table1_gt, filename = file.path(table_dir, "Table1.html"))
+Table1_gt
+```
+
+```{r}
+#| label: table1-output
+#| echo: false
+
+# Export a standalone publication table and display it in the report.
+gtsave(
+  Table1_gt,
+  filename = file.path(table_dir, "Table1.html")
+)
+
+Table1_gt
+```
+
+# Figure 1
+
+## Panel A: binding antibody isotypes
+
+```{r}
+#| label: fig1a
+#| fig-show: hide
+
+fig1a_data <- read_csv(file.path(derived_dir, "Fig1A_data.csv"), show_col_types = FALSE) %>%
+fig1a_data <- read_csv(file.path("Fig1A_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Compartment = factor(Compartment, levels = c("Serum", "BAL", "NLF")),
+    Isotype = factor(Isotype, levels = c("IgA", "IgG"))
+  )
+
+fig1a_p <- fig1a_data %>%
+  group_by(Compartment, Antigens) %>%
+  wilcox_test(
+    Log10_Value ~ Isotype,
+    paired = TRUE
+  ) %>%
+  ungroup() %>%
+  adjust_pvalue(method = "BH") %>%
+  add_xy_position(x = "Isotype") %>%
+  mutate(
+    p_label = ifelse(
+      p.adj < 0.001,
+      "p < 0.001",
+      sprintf("p = %.3f", p.adj)
+    )
+  )
+
+igg_line <- tibble(
+  Antigens = "Nucleocapsid",
+  Compartment = factor("Serum", levels = c("Serum", "BAL", "NLF")),
+  yintercept = 1
+)
+
+Fig1A <- ggplot(fig1a_data, aes(Isotype, Log10_Value, fill = Isotype)) +
+  geom_boxplot(alpha = 0.85, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "black", size = 1.5) +
+  geom_hline(
+    data = igg_line,
+    aes(yintercept = yintercept),
+    inherit.aes = FALSE,
+    colour = "#d95f02",
+    linetype = "dotted",
+    linewidth = 1
+  ) +
+  facet_grid(Antigens ~ Compartment) +
+  stat_pvalue_manual(fig1a_p, label = "p_label", tip.length = 0, size = 6) +
+  scale_fill_manual(values = iso_palette) +
+  scale_y_continuous(breaks = 0:5, limits = c(0, 5), expand = expansion(mult = c(0, 0.05))) +
+  labs(x = "Isotype", y = "Log10 Antibody Concentrations (WHO BAU/ml)", title = "A.") +
+  publication_theme() +
+  theme(legend.position = "none")
+```
+
+## Panel B: breadth of binding antibody responses
+
+```{r}
+#| label: fig1b
+#| fig-show: hide
+
+fig1b_data <- read_csv(file.path(derived_dir, "Fig1B_data.csv"), show_col_types = FALSE) %>%
+fig1b_data <- read_csv(file.path("Fig1B_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Antigen = factor(Antigens, levels = antigen_order),
+    Compartment = factor(Compartment, levels = c("Serum", "BAL", "NLF")),
+    Isotype = factor(Isotype, levels = c("IgG", "IgA"))
+  )
+
+fig1b_p <- fig1b_data %>%
+  group_by(Compartment, Isotype) %>%
+  wilcox_test(Log10_Value ~ Antigen, paired = TRUE, ref.group = "Wildtype") %>%
+  ungroup() %>%
+  adjust_pvalue(method = "BH") %>%
+  add_xy_position(x = "Antigen", step.increase = 0.25) %>%
+  mutate(p_label = ifelse(p.adj < 0.001, "p < 0.001", sprintf("p = %.3f", p.adj)))
+
+Fig1B <- ggplot(fig1b_data, aes(Antigen, Log10_Value, fill = Antigen)) +
+  geom_boxplot(alpha = 0.85, outlier.shape = NA) +
+  geom_jitter(width = 0.18, alpha = 0.5, color = "black", size = 1.5) +
+  facet_grid(Isotype ~ Compartment) +
+  stat_pvalue_manual(
+    fig1b_p,
+    label = "p_label",
+    xmin = "group1",
+    xmax = "group2",
+    y.position = "y.position",
+    tip.length = 0,
+    size = 6,
+    inherit.aes = FALSE
+  ) +
+  scale_fill_manual(values = cb_antigen) +
+  scale_y_continuous(breaks = seq(-1, 7, 1), expand = expansion(mult = c(0, 0.05))) +
+  coord_cartesian(ylim = c(-1, 9)) +
+  labs(x = "Antigen", y = "Log10 Antibody Concentrations (MSD AU/ml)", title = "B.") +
+  publication_theme() +
+  theme(axis.text.x = element_text(size = 18, angle = 45, hjust = 1), legend.position = "none")
+```
+
+## Panel C: cross-compartment antibody correlations
+
+```{r}
+#| label: fig1c
+#| fig-show: hide
+
+fig1c_data <- read_csv(file.path(derived_dir, "Fig1C_data.csv"), show_col_types = FALSE) %>%
+fig1c_data <- read_csv(file.path("Fig1C_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    sig = case_when(
+      is.na(p.adj) ~ "",
+      p.adj < 0.001 ~ "***",
+      p.adj < 0.01 ~ "**",
+      p.adj < 0.05 ~ "*",
+      TRUE ~ ""
+    ),
+    label = if_else(is.na(r), "", paste0(round(r, 2), "\n", sig)),
+    Antigens = factor(Antigens, levels = antigen_order)
+  )
+
+Fig1C <- ggplot(fig1c_data, aes(var1, var2, fill = r)) +
+  geom_tile() +
+  geom_text(aes(label = na_if(label, "")), size = 4) +
+  scale_fill_gradient2(limits = c(-1, 1), midpoint = 0, low = "#4575b4", high = "#d73027", na.value = "grey90") +
+  coord_equal() +
+  facet_wrap(~Antigens, ncol = 6) +
+  labs(x = NULL, y = NULL, fill = "r", title = "C.") +
+  publication_theme(base_size = 18) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 18))
+```
+
+## Panel D: ACE2 inhibition across serum and NLF
+
+```{r}
+#| label: fig1d
+#| fig-show: hide
+
+fig1d_data <- read_csv(file.path(derived_dir, "Fig1D_data.csv"), show_col_types = FALSE) %>%
+fig1d_data <- read_csv(file.path("Fig1D_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Antigens = factor(Antigens, levels = antigen_order),
+    Compartment = factor(Compartment, levels = c("Serum", "NLF"))
+  )
+
+fig1d_p <- fig1d_data %>%
+  group_by(Antigens) %>%
+  wilcox_test(Neutralization ~ Compartment, paired = TRUE) %>%
+  ungroup() %>%
+  adjust_pvalue(method = "BH") %>%
+  mutate(p_label = ifelse(p.adj < 0.001, "p < 0.001", sprintf("FDR = %.3f", p.adj))) %>%
+  left_join(
+    fig1d_data %>% group_by(Antigens) %>% summarise(y.position = max(Neutralization, na.rm = TRUE) + 2, .groups = "drop"),
+    by = "Antigens"
+  ) %>%
+  mutate(y.position = pmin(y.position, 100))
+
+Fig1D <- ggplot(fig1d_data, aes(Compartment, Neutralization, fill = Compartment)) +
+  geom_boxplot(alpha = 0.85, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.6, size = 2, color = "grey20") +
+  facet_wrap(~Antigens, nrow = 3) +
+  stat_pvalue_manual(fig1d_p, label = "p_label", y.position = "y.position", tip.length = 0, size = 6) +
+  scale_fill_manual(values = c("NLF" = "#0072B2", "Serum" = "#D55E00")) +
+  scale_y_continuous(limits = c(0, 110), breaks = seq(20, 100, 20), expand = expansion(mult = c(0, 0.05))) +
+  labs(x = "Compartment", y = "ACE2 inhibition (%)", title = "D.") +
+  publication_theme() +
+  theme(legend.position = "none")
+```
+
+## Panel E: binding antibodies versus ACE2 inhibition
+
+```{r}
+#| label: fig1e
+#| fig-show: hide
+
+fig1e_data <- read_csv(file.path(derived_dir, "Fig1E_data.csv"), show_col_types = FALSE) %>%
+fig1e_data <- read_csv(file.path("Fig1E_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Antigens = factor(Antigens, levels = antigen_order),
+    Compartment = factor(Compartment, levels = c("Serum", "NLF")),
+    Isotype = factor(Isotype, levels = c("IgG", "IgA"))
+  )
+
+fig1e_cor <- fig1e_data %>%
+  group_by(Antigens, Compartment, Isotype) %>%
+  summarise(
+    cor = cor(Log10_Value, Neutralization, method = "spearman", use = "complete.obs"),
+    p = suppressWarnings(cor.test(Log10_Value, Neutralization, method = "spearman", exact = FALSE)$p.value),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    p.adj = p.adjust(p, method = "BH"),
+    p_label = ifelse(p.adj < 0.001, "p < 0.001", sprintf("p = %.3f", p.adj)),
+    y_pos = if_else(Isotype == "IgG", 118, 108),
+    label = paste0("r = ", round(cor, 2), ", ", p_label)
+  )
+
+Fig1E <- ggplot(fig1e_data, aes(Log10_Value, Neutralization, color = Isotype)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Compartment + Antigens, nrow = 2, ncol = 6) +
+  geom_text(
+    data = fig1e_cor,
+    aes(x = -Inf, y = y_pos, label = label, color = Isotype),
+    inherit.aes = FALSE,
+    hjust = -0.05,
+    vjust = 1.2,
+    size = 5
+  ) +
+  scale_color_manual(values = c("IgG" = "#d95f02", "IgA" = "#1b9e77")) +
+  scale_y_continuous(breaks = seq(0, 120, 20), expand = expansion(mult = c(0, 0.05))) +
+  coord_cartesian(ylim = c(-1, 119)) +
+  labs(x = "Log10 Antibody Level (MSD AU/ml)", y = "ACE2 Inhibition (%)", title = "E.") +
+  publication_theme()
+```
+
+## Compile Figure 1
+
+```{r}
+#| label: fig1-compile
+#| echo: false
+#| fig-width: 18
+#| fig-height: 22
+
+strip_margins <- theme(plot.margin = margin(0, 0, 0, 0))
+A <- wrap_elements(full = Fig1A + strip_margins)
+B <- wrap_elements(full = Fig1B + strip_margins)
+C <- wrap_elements(full = Fig1C + strip_margins)
+D <- wrap_elements(full = Fig1D + strip_margins)
+E <- wrap_elements(full = Fig1E + strip_margins)
+
+Fig1 <- (A + B + plot_layout(widths = c(0.6, 1))) /
+  C /
+  (D + E + plot_layout(widths = c(0.4, 1))) +
+  plot_layout(heights = c(1, 0.5, 1), guides = "collect")
+
+ggsave(file.path(figure_dir, "Figure1.png"), Fig1, width = 18, height = 22, dpi = 600, bg = "white")
+Fig1
+```
+
+# Figure 2
+
+```{r}
+#| label: fig2-build
+#| fig-show: hide
+
+fig2a_data <- read_csv(file.path(derived_dir, "Fig2A_data.csv"), show_col_types = FALSE) %>%
+fig2a_data <- read_csv(file.path("Fig2A_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Compartment = factor(Compartment, levels = c("Serum", "BAL", "NLF")),
+    Antigens = factor(Antigens, levels = c("Nucleocapsid", "RBD", "Wildtype"))
+  )
+
+fig2a_p <- fig2a_data %>%
+  group_by(Antigens, Compartment) %>%
+  wilcox_test(Log10_Value ~ HIV_Status) %>%
+  ungroup() %>%
+  adjust_pvalue(method = "BH") %>%
+  add_xy_position(x = "HIV_Status") %>%
+  mutate(p_label = ifelse(p.adj < 0.001, "p < 0.001", sprintf("p = %.3f", p.adj)))
+
+Fig2A <- ggplot(fig2a_data, aes(HIV_Status, Log10_Value, fill = HIV_Status)) +
+  geom_boxplot(alpha = 0.85, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "black", size = 1.5) +
+  facet_grid(Antigens ~ Compartment) +
+  stat_pvalue_manual(fig2a_p, label = "p_label", xmin = "group1", xmax = "group2", y.position = "y.position", tip.length = 0, size = 6, inherit.aes = FALSE) +
+  scale_fill_manual(values = hiv_palette) +
+  coord_cartesian(ylim = c(0, 6)) +
+  labs(x = "HIV Status", y = "Log10 IgA Antibody Concentrations (WHO BAU/ml)", title = "A.") +
+  publication_theme() + theme(legend.position = "none")
+
+fig2b_data <- read_csv(file.path(derived_dir, "Fig2B_data.csv"), show_col_types = FALSE) %>%
+fig2b_data <- read_csv(file.path("Fig2B_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Compartment = factor(Compartment, levels = c("Serum", "BAL", "NLF")),
+    Antigens = factor(Antigens, levels = c("Nucleocapsid", "RBD", "Wildtype"))
+  )
+
+fig2b_p <- fig2b_data %>%
+  group_by(Antigens, Compartment) %>%
+  wilcox_test(Log10_Value ~ HIV_Status) %>%
+  ungroup() %>%
+  adjust_pvalue(method = "BH") %>%
+  add_xy_position(x = "HIV_Status") %>%
+  mutate(p_label = ifelse(p.adj < 0.001, "p < 0.001", sprintf("p = %.3f", p.adj)))
+
+Fig2B <- ggplot(fig2b_data, aes(HIV_Status, Log10_Value, fill = HIV_Status)) +
+  geom_boxplot(alpha = 0.85, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "black", size = 1.5) +
+  facet_grid(Antigens ~ Compartment) +
+  stat_pvalue_manual(fig2b_p, label = "p_label", xmin = "group1", xmax = "group2", y.position = "y.position", tip.length = 0, size = 6, inherit.aes = FALSE) +
+  scale_fill_manual(values = hiv_palette) +
+  coord_cartesian(ylim = c(0, 6)) +
+  labs(x = "HIV Status", y = "Log10 IgG Antibody Concentrations (WHO BAU/ml)", title = "B.") +
+  publication_theme() + theme(legend.position = "none")
+
+fig2c_data <- read_csv(file.path(derived_dir, "Fig2C_data.csv"), show_col_types = FALSE) %>%
+fig2c_data <- read_csv(file.path("Fig2C_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Antigens = factor(Antigens, levels = antigen_order),
+    Compartment = factor(Compartment, levels = c("Serum", "NLF"))
+  )
+
+fig2c_p <- fig2c_data %>%
+  group_by(Antigens, Compartment) %>%
+  wilcox_test(Neutralization ~ HIV_Status, paired = FALSE) %>%
+  ungroup() %>%
+  adjust_pvalue(method = "BH") %>%
+  mutate(
+    p_label = ifelse(p.adj < 0.001, "p < 0.001", sprintf("p = %.3f", p.adj)),
+    group1 = "HIV-",
+    group2 = "HIV+"
+  ) %>%
+  left_join(
+    fig2c_data %>% group_by(Antigens, Compartment) %>% summarise(y.position = max(Neutralization, na.rm = TRUE) + 2, .groups = "drop"),
+    by = c("Antigens", "Compartment")
+  ) %>%
+  mutate(y.position = pmin(y.position, 100))
+
+Fig2C <- ggplot(fig2c_data, aes(HIV_Status, Neutralization, fill = HIV_Status)) +
+  geom_boxplot(alpha = 0.85, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.6, size = 2, color = "grey20") +
+  facet_grid(Compartment ~ Antigens) +
+  stat_pvalue_manual(fig2c_p, label = "p_label", xmin = "group1", xmax = "group2", y.position = "y.position", tip.length = 0, size = 6, inherit.aes = FALSE) +
+  scale_fill_manual(values = hiv_palette) +
+  scale_y_continuous(limits = c(0, 110), breaks = seq(20, 100, 20)) +
+  labs(x = "HIV Status", y = "ACE2 inhibition (%)", title = "C.") +
+  publication_theme() + theme(legend.position = "none")
+```
+
+```{r}
+#| label: fig2-compile
+#| echo: false
+#| fig-width: 15
+#| fig-height: 16
+
+A <- wrap_elements(full = Fig2A + strip_margins)
+B <- wrap_elements(full = Fig2B + strip_margins)
+C <- wrap_elements(full = Fig2C + strip_margins)
+
+Fig2 <- (A + B) / C + plot_layout(heights = c(1, 0.7), guides = "collect")
+ggsave(file.path(figure_dir, "Figure2.png"), Fig2, width = 15, height = 16, dpi = 600, bg = "white")
+Fig2
+```
+
+# Figure 3
+
+```{r}
+#| label: fig3-build
+#| fig-show: hide
+
+fig3a_data <- read_csv(file.path(derived_dir, "Fig3A_data.csv"), show_col_types = FALSE) %>%
+fig3b_data <- read_csv(file.path("Fig3B_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Stimulant = factor(Stimulant, levels = c("PMA & Ionomycin", "WT Spike", "WT Nucleocapsid")),
+    Compartment = factor(Compartment, levels = c("BAL", "PB"))
+  )
+
+fig3a_p <- fig3a_data %>%
+fig3b_p <- fig3b_data %>%
+  group_by(Stimulant) %>%
+  wilcox_test(Log_CD4Total ~ Compartment) %>%
+  mutate(p_label = format_p(p)) %>%
+  add_y_position(fun = "max", step.increase = 0.08)
+
+Fig3A <- ggplot(fig3a_data, aes(Compartment, Log_CD4Total, fill = Compartment)) +
+Fig3B <- ggplot(fig3b_data, aes(Compartment, Log_CD4Total, fill = Compartment)) +
+  geom_boxplot(outlier.shape = NA, width = 0.6, alpha = 0.8) +
+  geom_jitter(width = 0.1, alpha = 0.5) +
+  facet_wrap(~Stimulant) +
+  stat_pvalue_manual(fig3a_p, label = "p_label", tip.length = 0, size = 5) +
+  stat_pvalue_manual(fig3b_p, label = "p_label", tip.length = 0, size = 5) +
+  scale_fill_manual(values = comp_palette) +
+  labs(title = "B.", y = "Log10[Total CD4 T cell cytokine-producing cells]", x = "Compartment") +
+  labs(title = "B.", y = "Log10[Total CD4 T cell \n cytokine-producing cells]", x = "Compartment") +
+  publication_theme() + theme(legend.position = "none")
+
+fig3b_data <- read_csv(file.path(derived_dir, "Fig3B_data.csv"), show_col_types = FALSE) %>%
+fig3c_data <- read_csv(file.path("Fig3C_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Stimulant = factor(Stimulant, levels = c("PMA & Ionomycin", "WT Spike", "WT Nucleocapsid")),
+    Compartment = factor(Compartment, levels = c("BAL", "PB"))
+  )
+
+fig3b_p <- fig3b_data %>%
+fig3c_p <- fig3c_data %>%
+  group_by(Stimulant) %>%
+  wilcox_test(Log_CD8Total ~ Compartment) %>%
+  mutate(p_label = format_p(p)) %>%
+  add_y_position(fun = "max", step.increase = 0.08)
+
+Fig3B <- ggplot(fig3b_data, aes(Compartment, Log_CD8Total, fill = Compartment)) +
+Fig3C <- ggplot(fig3c_data, aes(Compartment, Log_CD8Total, fill = Compartment)) +
+  geom_boxplot(outlier.shape = NA, width = 0.6, alpha = 0.8) +
+  geom_jitter(width = 0.1, alpha = 0.5) +
+  facet_wrap(~Stimulant) +
+  stat_pvalue_manual(fig3b_p, label = "p_label", tip.length = 0, size = 5) +
+  stat_pvalue_manual(fig3c_p, label = "p_label", tip.length = 0, size = 5) +
+  scale_fill_manual(values = comp_palette) +
+  labs(title = "C.", y = "Log10[Total CD8 T cell cytokine-producing cells]", x = "Compartment") +
+  labs(title = "C.", y = "Log10[Total CD8 T cell \n cytokine-producing cells]", x = "Compartment") +
+  publication_theme() + theme(legend.position = "none")
+
+fig3c_data <- read_csv(file.path(derived_dir, "Fig3C_data.csv"), show_col_types = FALSE) %>%
+fig3d_data <- read_csv(file.path("Fig3D_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    sig = case_when(
+      is.na(p) ~ "",
+      p < 0.001 ~ "***",
+      p < 0.01 ~ "**",
+      p < 0.05 ~ "*",
+      TRUE ~ ""
+    ),
+    label = if_else(is.na(r), "", paste0(round(r, 2), "\n", sig))
+  )
+
+Fig3C <- ggplot(fig3c_data, aes(var1, var2, fill = r)) +
+Fig3D <- ggplot(fig3d_data, aes(var1, var2, fill = r)) +
+  geom_tile() +
+  geom_text(aes(label = na_if(label, "")), size = 5) +
+  scale_fill_gradient2(limits = c(-1, 1), midpoint = 0, low = "#4575b4", high = "#d73027", na.value = "grey90") +
+  coord_equal() +
+  facet_grid(. ~ Compartment + Stimulant) +
+  labs(x = NULL, y = NULL, fill = "r", title = "D.") +
+  publication_theme(base_size = 18) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 16), axis.text.y = element_text(size = 16))
+```
+
+```{r}
+#| label: fig3-compile
+#| echo: false
+#| fig-width: 17
+#| fig-height: 15
+
+facs_img <- image_read(file.path(image_dir, "FACS.png")) |> image_trim()
+facs_img <- image_read(file.path("FACS.png")) |> image_trim()
+facs_grob <- grid::rasterGrob(
+  as.raster(facs_img),
+  width = grid::unit(1, "npc"),
+  height = grid::unit(1, "npc"),
+  interpolate = TRUE
+)
+FACS <- wrap_elements(full = facs_grob, clip = FALSE)
+
+Fig3 <- FACS /
+  (Fig3A + Fig3B) /
+  Fig3C +
+  plot_layout(heights = c(1.3, 1, 1), guides = "collect")
+strip_margins <- theme(plot.margin = margin(0,0,0,0))
+
+B <- wrap_elements(full = Fig3B + strip_margins)
+C <- wrap_elements(full = Fig3C + strip_margins)
+D <- wrap_elements(full = Fig3D + strip_margins)
+
+Fig3 <- FACS /
+  (Fig3B + Fig3C) /
+  Fig3D +
+  plot_layout(heights = c(2, 1, 1.3), guides = "collect")
+ggsave(file.path(figure_dir, "Figure3.png"), Fig3, width = 17, height = 15, dpi = 600, bg = "white")
+Fig3
+```
+
+# Figure 4
+
+```{r}
+#| label: fig4-build
+#| fig-show: hide
+
+fig4a_data <- read_csv(file.path(derived_dir, "Fig4A_data.csv"), show_col_types = FALSE) %>%
+fig4a_data <- read_csv(file.path("Fig4A_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Stimulant = factor(Stimulant, levels = c("PMA & Ionomycin", "WT Spike", "WT Nucleocapsid")),
+    Compartment = factor(Compartment, levels = c("BAL", "PB"))
+  )
+
+fig4a_p <- fig4a_data %>%
+  group_by(Stimulant, Compartment) %>%
+  wilcox_test(Log_CD4Total ~ HIV_status) %>%
+  mutate(p_label = format_p(p)) %>%
+  add_y_position(fun = "max", step.increase = 0.08)
+
+Fig4A <- ggplot(fig4a_data, aes(HIV_status, Log_CD4Total, fill = Compartment)) +
+  geom_boxplot(outlier.shape = NA, width = 0.6, alpha = 0.8) +
+  geom_jitter(width = 0.1, alpha = 0.5) +
+  facet_wrap(~Compartment + Stimulant, ncol = 3) +
+  stat_pvalue_manual(fig4a_p, label = "p_label", tip.length = 0, size = 5) +
+  scale_fill_manual(values = comp_palette) +
+  labs(title = "A.", y = "Log10[Total CD4 T cell cytokine-producing cells]", x = "HIV status") +
+  publication_theme() + theme(legend.position = "none")
+
+fig4b_data <- read_csv(file.path(derived_dir, "Fig4B_data.csv"), show_col_types = FALSE) %>%
+fig4b_data <- read_csv(file.path("Fig4B_data.csv"), show_col_types = FALSE) %>%
+  mutate(
+    Stimulant = factor(Stimulant, levels = c("PMA & Ionomycin", "WT Spike", "WT Nucleocapsid")),
+    Compartment = factor(Compartment, levels = c("BAL", "PB"))
+  )
+
+fig4b_p <- fig4b_data %>%
+  group_by(Stimulant, Compartment) %>%
+  wilcox_test(Log_CD8Total ~ HIV_status) %>%
+  mutate(p_label = format_p(p)) %>%
+  add_y_position(fun = "max", step.increase = 0.08)
+
+Fig4B <- ggplot(fig4b_data, aes(HIV_status, Log_CD8Total, fill = Compartment)) +
+  geom_boxplot(outlier.shape = NA, width = 0.6, alpha = 0.8) +
+  geom_jitter(width = 0.1, alpha = 0.5) +
+  facet_wrap(~Compartment + Stimulant, ncol = 3) +
+  stat_pvalue_manual(fig4b_p, label = "p_label", tip.length = 0, size = 5) +
+  scale_fill_manual(values = comp_palette) +
+  labs(title = "B.", y = "Log10[Total CD8 T cell cytokine-producing cells]", x = "HIV status") +
+  publication_theme() + theme(legend.position = "none")
+
+fig4c_data <- read_csv(file.path(derived_dir, "Fig4C_data.csv"), show_col_types = FALSE)
+fig4c_data <- read_csv(file.path("Fig4C_data.csv"), show_col_types = FALSE)
+fig4c_cor <- fig4c_data %>%
+  group_by(Stimulant) %>%
+  summarise(r = cor(BAL, PB, method = "spearman"), p = cor.test(BAL, PB, method = "spearman", exact = FALSE)$p.value, .groups = "drop") %>%
+  mutate(label = paste0("r = ", round(r, 2), ", ", format_p(p)))
+
+Fig4C <- ggplot(fig4c_data, aes(PB, BAL, colour = HIV_status)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, colour = "black") +
+  facet_wrap(~Stimulant) +
+  geom_text(data = fig4c_cor, aes(x = -Inf, y = Inf, label = label), inherit.aes = FALSE, hjust = -0.1, vjust = 1.5, size = 6) +
+  scale_colour_manual(values = hiv_palette) +
+  labs(title = "C.", x = "PB CD4 response (log10)", y = "BAL CD4 response (log10)", colour = "HIV status") +
+  publication_theme()
+
+fig4d_data <- read_csv(file.path(derived_dir, "Fig4D_data.csv"), show_col_types = FALSE)
+fig4d_data <- read_csv(file.path("Fig4D_data.csv"), show_col_types = FALSE)
+fig4d_cor <- fig4d_data %>%
+  group_by(Stimulant) %>%
+  summarise(r = cor(BAL, PB, method = "spearman"), p = cor.test(BAL, PB, method = "spearman", exact = FALSE)$p.value, .groups = "drop") %>%
+  mutate(label = paste0("r = ", round(r, 2), ", ", format_p(p)))
+
+Fig4D <- ggplot(fig4d_data, aes(PB, BAL, colour = HIV_status)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, colour = "black") +
+  facet_wrap(~Stimulant) +
+  geom_text(data = fig4d_cor, aes(x = -Inf, y = Inf, label = label), inherit.aes = FALSE, hjust = -0.1, vjust = 1.5, size = 6) +
+  scale_colour_manual(values = hiv_palette) +
+  labs(title = "D.", x = "PB CD8 response (log10)", y = "BAL CD8 response (log10)", colour = "HIV status") +
+  publication_theme()
+```
+
+```{r}
+#| label: fig4-compile
+#| echo: false
+#| fig-width: 16
+#| fig-height: 14
+
+Fig4 <- (Fig4A + Fig4B) / (Fig4C + Fig4D) +
+  plot_layout(widths = c(1, 1), heights = c(1, 0.5), guides = "collect")
+
+ggsave(file.path(figure_dir, "Figure4.png"), Fig4, width = 16, height = 14, dpi = 600, bg = "white")
+Fig4
+```
+
+# Figure 5
+
+Figure 5 is not generated analytically from data within this Quarto document. The individual phenotyping panels were generated externally. This section only imports the completed panels, adds the manuscript panel labels, assembles them, and exports the final Figure 5. The underlying Figure 5 data are supplied separately and are not an input to this build step.
+
+```{r}
+#| label: fig5-compile
+#| echo: false
+
+Fig5A <- image_read(file.path(image_dir, "Figure 5B-02.png")) |> image_trim()
+Fig5B <- image_read(file.path(image_dir, "Figure 5A-02.png")) |> image_trim()
+
+target_width <- max(image_info(Fig5A)$width, image_info(Fig5B)$width)
+Fig5A <- image_scale(Fig5A, paste0(target_width, "x"))
+Fig5B <- image_scale(Fig5B, paste0(target_width, "x"))
+
+add_panel_label <- function(img, label, width) {
+  img <- image_extent(
+    img,
+    geometry = paste0(width, "x", image_info(img)$height + 100),
+    gravity = "south",
+    color = "white"
+  )
+  image_annotate(
+    img,
+    label,
+    size = 70,
+    size = 50,
+    weight = 700,
+    gravity = "northwest",
+    location = "+20+10",
+    color = "black"
+  )
+}
+
+Fig5A <- add_panel_label(Fig5A, "A.", target_width)
+Fig5B <- add_panel_label(Fig5B, "B.", target_width)
+Figure5 <- image_append(c(Fig5A, Fig5B), stack = TRUE)
+
+image_write(Figure5, path = file.path(figure_dir, "Figure5.png"), format = "png")
+Figure5
+```
+
+# Table 2: multivariable regression
+
+`Table2_data.csv` is the derived participant-level analysis dataset used to generate Table 2. It contains the variables required for the three multivariable models; no primary assay dataset is required by this document.
+
+```{r}
+#| label: table2-models
+#| include: false
+
+regression_df_std <- read_csv(file.path(derived_dir, "Table2_data.csv"), show_col_types = FALSE)
+regression_df <- read_csv(file.path("Table2_data.csv"), show_col_types = FALSE)
+
+# Standardize continuous variables
+regression_df_std <- regression_df %>%
+  mutate(across(
+    c(BAL_IgG, BAL_IgA, Serum_IgG, Serum_IgA, NLF_IgG, NLF_IgA,
+      Serum_Neutralization, NLF_Neutralization, Age),
+    ~ as.numeric(scale(.))
+  ))
+
+model_NLF <- lm(
+  NLF_Neutralization ~ NLF_IgA + NLF_IgG + Serum_IgG + Serum_IgA + BAL_IgG + BAL_IgA + Age + Sex + HIV_Status + Vacc_Status,
+  data = regression_df_std
+)
+
+model_serum <- lm(
+  Serum_Neutralization ~ Serum_IgG + Serum_IgA + BAL_IgG + BAL_IgA + NLF_IgG + NLF_IgA + Age + Sex + HIV_Status + Vacc_Status,
+  data = regression_df_std
+)
+
+model_BAL <- lm(
+  BAL_IgG ~ Serum_IgG + Serum_IgA + BAL_IgA + NLF_IgG + NLF_IgA + Age + Sex + HIV_Status + Vacc_Status,
+  data = regression_df_std
+)
+
+make_model_table <- function(model, estimate_name, p_name) {
+  tidy(model, conf.int = TRUE) %>%
+    mutate(
+      "{estimate_name}" := sprintf("%.2f (%.2f, %.2f)", estimate, conf.low, conf.high),
+      "{p_name}" := ifelse(p.value < 0.001, "<0.001", sprintf("%.3f", p.value))
+    ) %>%
+    select(term, all_of(c(estimate_name, p_name)))
+}
+
+tbl_NLF <- make_model_table(model_NLF, "NLF", "p_NLF")
+tbl_serum <- make_model_table(model_serum, "Serum", "p_Serum")
+tbl_BAL <- make_model_table(model_BAL, "BAL", "p_BAL")
+
+table_all <- full_join(tbl_NLF, tbl_serum, by = "term") %>%
+  full_join(tbl_BAL, by = "term") %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    Predictor = case_when(
+      term == "Age" ~ "Age",
+      term == "SexM" ~ "Sex (Male)",
+      term == "HIV_StatusHIV+" ~ "HIV+ status",
+      term == "Vacc_StatusVaccinated" ~ "Vaccinated",
+      term == "Serum_IgG" ~ "Serum IgG binding breadth",
+      term == "Serum_IgA" ~ "Serum IgA binding breadth",
+      term == "BAL_IgG" ~ "BAL IgG binding breadth",
+      term == "BAL_IgA" ~ "BAL IgA binding breadth",
+      term == "NLF_IgG" ~ "NLF IgG binding breadth",
+      term == "NLF_IgA" ~ "NLF IgA binding breadth",
+      TRUE ~ term
+    ),
+    Group = case_when(
+      Predictor %in% c("Age", "Sex (Male)", "HIV+ status", "Vaccinated") ~ "Participant characteristics",
+      Predictor %in% c("Serum IgG binding breadth", "Serum IgA binding breadth") ~ "Systemic markers",
+      Predictor %in% c("BAL IgG binding breadth", "BAL IgA binding breadth") ~ "Lower airway markers",
+      Predictor %in% c("NLF IgG binding breadth", "NLF IgA binding breadth") ~ "Upper airway markers",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  select(Group, Predictor, NLF, p_NLF, Serum, p_Serum, BAL, p_BAL) %>%
+  mutate(across(c(NLF, p_NLF, Serum, p_Serum, BAL, p_BAL), ~replace_na(.x, "—")))
+```
+
+```{r}
+#| label: table2-output
+#| echo: false
+
+# Logical order
+row_order <- c(
+  "Age", "Sex (Male)", "HIV+ status", "Vaccinated",
+  "Serum neutralization breadth", "Serum IgG binding breadth", "Serum IgA binding breadth",
+  "BAL IgG binding breadth", "BAL IgA binding breadth",
+  "NLF neutralization breadth", "NLF IgG binding breadth", "NLF IgA binding breadth"
+)
+
+table_all <- table_all %>%
+  slice(match(row_order, Predictor)) %>%
+  mutate(across(c(NLF, p_NLF, Serum, p_Serum, BAL, p_BAL), ~ ifelse(is.na(.), "—", .))) # Replace NAs with dash for cleaner reading
+
+final_gt <- table_all %>%
+  gt(groupname_col = "Group") %>%
+  cols_label(
+    Predictor = "Predictor",
+    NLF = "NLF neutralization breadth\nβ (95% CI)",
+    p_NLF = "p",
+    Serum = "Serum neutralization breadth\nβ (95% CI)",
+    p_Serum = "p",
+    BAL = "BAL IgG binding breadth\nβ (95% CI)",
+    p_BAL = "p"
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = c(NLF, p_NLF), rows = suppressWarnings(as.numeric(sub("<", "", p_NLF))) < 0.05)
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = c(Serum, p_Serum), rows = suppressWarnings(as.numeric(sub("<", "", p_Serum))) < 0.05)
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = c(BAL, p_BAL), rows = suppressWarnings(as.numeric(sub("<", "", p_BAL))) < 0.05)
+  ) %>%
+  tab_source_note(
+    source_note = paste0(
+      "Multivariable linear regression models fitted on n = ",
+      nrow(regression_df_std),
+      " participants. β values are standardized coefficients."
+    )
+  ) %>%
+  tab_options(table.font.size = 12, data_row.padding = px(4))
+
+gtsave(final_gt, filename = file.path(table_dir, "Table2.html"))
+final_gt
+```
+
+# Reproducibility information
+
+```{r}
+#| label: session-info
+#| echo: true
+
+sessionInfo()
+```
